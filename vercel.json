@@ -4,10 +4,6 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "web/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -16,16 +12,16 @@
       "dest": "server.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "web/$1"
-    }
-  ],
-  "headers": [
+      "src": "/css/(.*)",
+      "dest": "server.js"
+    },
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
-      ]
+      "src": "/js/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
     }
   ]
 }

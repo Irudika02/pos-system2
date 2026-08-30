@@ -64,6 +64,7 @@ async function initSqlite() {
     CREATE TABLE IF NOT EXISTS product (
       code TEXT PRIMARY KEY,
       description TEXT NOT NULL,
+      buying_price REAL DEFAULT 0.0,
       unit_price REAL NOT NULL,
       qty_on_hand INTEGER NOT NULL,
       qr_code TEXT
@@ -72,6 +73,7 @@ async function initSqlite() {
       order_id TEXT PRIMARY KEY,
       date TEXT NOT NULL,
       total_cost REAL NOT NULL,
+      total_profit REAL DEFAULT 0.0,
       customer_id TEXT,
       user_email TEXT
     );
@@ -124,6 +126,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// CUSTOMERS API
 app.get('/api/customers', async (req, res) => {
   try {
     let rows;
@@ -164,6 +167,7 @@ app.post('/api/customers', async (req, res) => {
   }
 });
 
+// PRODUCTS API (GET, POST, PUT, DELETE)
 app.get('/api/products', async (req, res) => {
   try {
     let rows;
@@ -176,6 +180,7 @@ app.get('/api/products', async (req, res) => {
     const products = rows.map(r => ({
       code: r.code,
       description: r.description,
+      buyingPrice: parseFloat(r.buying_price || r.unit_price * 0.8),
       unitPrice: parseFloat(r.unit_price || 0),
       qtyOnHand: parseInt(r.qty_on_hand || 0),
       qrCode: r.qr_code || ('QR-' + r.code)
@@ -188,17 +193,18 @@ app.get('/api/products', async (req, res) => {
 
 app.post('/api/products', async (req, res) => {
   try {
-    const { description, unitPrice, qtyOnHand } = req.body;
+    const { description, buyingPrice, unitPrice, qtyOnHand } = req.body;
     const code = 'P-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-    const price = parseFloat(unitPrice || 0);
+    const buyPrice = parseFloat(buyingPrice || 0);
+    const sellPrice = parseFloat(unitPrice || 0);
     const qty = parseInt(qtyOnHand || 0);
 
     if (db.query) {
-      await db.query('INSERT INTO product (code, description, unit_price, qty_on_hand, qr_code) VALUES (?, ?, ?, ?, ?)',
-        [code, description, price, qty, 'QR-' + code]);
+      await db.query('INSERT INTO product (code, description, buying_price, unit_price, qty_on_hand, qr_code) VALUES (?, ?, ?, ?, ?, ?)',
+        [code, description, buyPrice, sellPrice, qty, 'QR-' + code]);
     } else {
-      await db.run('INSERT INTO product (code, description, unit_price, qty_on_hand, qr_code) VALUES (?, ?, ?, ?, ?)',
-        [code, description, price, qty, 'QR-' + code]);
+      await db.run('INSERT INTO product (code, description, buying_price, unit_price, qty_on_hand, qr_code) VALUES (?, ?, ?, ?, ?, ?)',
+        [code, description, buyPrice, sellPrice, qty, 'QR-' + code]);
     }
     res.json({ success: true, msg: 'Product saved', code });
   } catch (e) {
@@ -206,6 +212,42 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
+app.put('/api/products/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { description, buyingPrice, unitPrice, qtyOnHand } = req.body;
+    const buyPrice = parseFloat(buyingPrice || 0);
+    const sellPrice = parseFloat(unitPrice || 0);
+    const qty = parseInt(qtyOnHand || 0);
+
+    if (db.query) {
+      await db.query('UPDATE product SET description = ?, buying_price = ?, unit_price = ?, qty_on_hand = ? WHERE code = ?',
+        [description, buyPrice, sellPrice, qty, code]);
+    } else {
+      await db.run('UPDATE product SET description = ?, buying_price = ?, unit_price = ?, qty_on_hand = ? WHERE code = ?',
+        [description, buyPrice, sellPrice, qty, code]);
+    }
+    res.json({ success: true, msg: 'Product updated successfully' });
+  } catch (e) {
+    res.status(500).json({ success: false, msg: e.message });
+  }
+});
+
+app.delete('/api/products/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    if (db.query) {
+      await db.query('DELETE FROM product WHERE code = ?', [code]);
+    } else {
+      await db.run('DELETE FROM product WHERE code = ?', [code]);
+    }
+    res.json({ success: true, msg: 'Product deleted successfully' });
+  } catch (e) {
+    res.status(500).json({ success: false, msg: e.message });
+  }
+});
+
+// ORDERS API (GET, POST with profit calculation)
 app.get('/api/orders', async (req, res) => {
   try {
     let rows;
@@ -219,6 +261,7 @@ app.get('/api/orders', async (req, res) => {
       orderId: r.order_id,
       date: r.date,
       totalCost: parseFloat(r.total_cost || 0),
+      totalProfit: parseFloat(r.total_profit || 0),
       customerId: r.customer_id,
       userEmail: r.user_email
     }));
@@ -235,60 +278,84 @@ app.post('/api/orders', async (req, res) => {
     const date = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     let totalCost = 0;
+    let totalProfit = 0;
+
     if (items) {
       const itemArr = items.split(';');
       for (const itemStr of itemArr) {
         const parts = itemStr.split('|');
         if (parts.length >= 4) {
+          const code = parts[0];
           const price = parseFloat(parts[2]);
           const qty = parseInt(parts[3]);
           totalCost += (price * qty);
 
+          // Get buying price for profit calculation
+          let prod;
+          if (db.query) {
+            const [rows] = await db.query('SELECT buying_price FROM product WHERE code = ?', [code]);
+            prod = rows[0];
+          } else {
+            prod = await db.get('SELECT buying_price FROM product WHERE code = ?', [code]);
+          }
+          const buyPrice = prod ? parseFloat(prod.buying_price || price * 0.8) : (price * 0.8);
+          const itemProfit = (price - buyPrice) * qty;
+          totalProfit += itemProfit;
+
           // Update product stock
           if (db.query) {
-            await db.query('UPDATE product SET qty_on_hand = qty_on_hand - ? WHERE code = ?', [qty, parts[0]]);
+            await db.query('UPDATE product SET qty_on_hand = qty_on_hand - ? WHERE code = ?', [qty, code]);
           } else {
-            await db.run('UPDATE product SET qty_on_hand = qty_on_hand - ? WHERE code = ?', [qty, parts[0]]);
+            await db.run('UPDATE product SET qty_on_hand = qty_on_hand - ? WHERE code = ?', [qty, code]);
           }
         }
       }
     }
 
     if (db.query) {
-      await db.query('INSERT INTO orders (order_id, date, total_cost, customer_id, user_email) VALUES (?, ?, ?, ?, ?)',
-        [orderId, date, totalCost, customerId, userEmail || 'mobile@pos.com']);
+      await db.query('INSERT INTO orders (order_id, date, total_cost, total_profit, customer_id, user_email) VALUES (?, ?, ?, ?, ?, ?)',
+        [orderId, date, totalCost, totalProfit, customerId, userEmail || 'mobile@pos.com']);
     } else {
-      await db.run('INSERT INTO orders (order_id, date, total_cost, customer_id, user_email) VALUES (?, ?, ?, ?, ?)',
-        [orderId, date, totalCost, customerId, userEmail || 'mobile@pos.com']);
+      await db.run('INSERT INTO orders (order_id, date, total_cost, total_profit, customer_id, user_email) VALUES (?, ?, ?, ?, ?, ?)',
+        [orderId, date, totalCost, totalProfit, customerId, userEmail || 'mobile@pos.com']);
     }
 
-    res.json({ success: true, msg: 'Order placed successfully', orderId, total: totalCost });
+    res.json({ success: true, msg: 'Order placed successfully', orderId, total: totalCost, profit: totalProfit });
   } catch (e) {
     res.status(500).json({ success: false, msg: e.message });
   }
 });
 
+// STATS & PROFIT ANALYTICS API
 app.get('/api/stats', async (req, res) => {
   try {
-    let custCount = 0, prodCount = 0, orderCount = 0, revenue = 0;
+    let custCount = 0, prodCount = 0, orderCount = 0, revenue = 0, profit = 0;
     if (db.query) {
       const [[c]] = await db.query('SELECT COUNT(*) as cnt FROM customer');
       const [[p]] = await db.query('SELECT COUNT(*) as cnt FROM product');
-      const [[o]] = await db.query('SELECT COUNT(*) as cnt, SUM(total_cost) as rev FROM orders');
+      const [[o]] = await db.query('SELECT COUNT(*) as cnt, SUM(total_cost) as rev, SUM(total_profit) as prof FROM orders');
       custCount = c.cnt;
       prodCount = p.cnt;
       orderCount = o.cnt;
       revenue = o.rev || 0;
+      profit = o.prof || 0;
     } else {
       const c = await db.get('SELECT COUNT(*) as cnt FROM customer');
       const p = await db.get('SELECT COUNT(*) as cnt FROM product');
-      const o = await db.get('SELECT COUNT(*) as cnt, SUM(total_cost) as rev FROM orders');
+      const o = await db.get('SELECT COUNT(*) as cnt, SUM(total_cost) as rev, SUM(total_profit) as prof FROM orders');
       custCount = c.cnt;
       prodCount = p.cnt;
       orderCount = o.cnt;
       revenue = o.rev || 0;
+      profit = o.prof || 0;
     }
-    res.json({ customers: custCount, products: prodCount, orders: orderCount, revenue: parseFloat(revenue || 0) });
+    res.json({
+      customers: custCount,
+      products: prodCount,
+      orders: orderCount,
+      revenue: parseFloat(revenue || 0),
+      profit: parseFloat(profit || 0)
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

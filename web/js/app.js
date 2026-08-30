@@ -3,7 +3,7 @@ let state = {
   customers: [],
   orders: [],
   cart: [],
-  stats: { customers: 0, products: 0, orders: 0, revenue: 0 },
+  stats: { customers: 0, products: 0, orders: 0, revenue: 0, profit: 0 },
   currentReceipt: null
 };
 
@@ -39,6 +39,7 @@ async function fetchStats() {
     const data = await res.json();
     state.stats = data;
     document.getElementById('statRevenue').innerText = `LKR ${data.revenue ? data.revenue.toFixed(2) : '0.00'}`;
+    document.getElementById('statProfit').innerText = `LKR ${data.profit ? data.profit.toFixed(2) : '0.00'}`;
     document.getElementById('statOrders').innerText = data.orders || 0;
     document.getElementById('statProducts').innerText = data.products || 0;
     document.getElementById('statCustomers').innerText = data.customers || 0;
@@ -131,13 +132,23 @@ function renderProducts() {
     return;
   }
   state.products.forEach(p => {
+    const margin = (p.unitPrice - (p.buyingPrice || 0));
     container.innerHTML += `
       <div class="list-card">
-        <div class="list-card-info">
+        <div class="list-card-info" style="flex: 1;">
           <h4>${p.description}</h4>
-          <p>Code: ${p.code} | Stock: ${p.qtyOnHand} pcs</p>
+          <p>Code: <strong>${p.code}</strong> | Stock: <strong>${p.qtyOnHand} pcs</strong></p>
+          <p style="color: #10b981; font-size: 11px; margin-top: 2px;">
+            Buy: LKR ${(p.buyingPrice || 0).toFixed(2)} | Profit/item: LKR ${margin.toFixed(2)}
+          </p>
         </div>
-        <div class="list-card-value">LKR ${p.unitPrice.toFixed(2)}</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+          <div class="list-card-value">LKR ${p.unitPrice.toFixed(2)}</div>
+          <div style="display: flex; gap: 6px;">
+            <button style="background: rgba(99,102,241,0.2); border: 1px solid #6366f1; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;" onclick="editProduct('${p.code}')">✏️ Edit</button>
+            <button style="background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;" onclick="deleteProduct('${p.code}')">🗑️ Delete</button>
+          </div>
+        </div>
       </div>
     `;
   });
@@ -176,6 +187,7 @@ function renderHistory() {
         <div class="list-card-info">
           <h4>Order #${o.orderId}</h4>
           <p>Customer: ${o.customerId} | Date: ${o.date}</p>
+          <p style="color: #10b981; font-size: 11px; margin-top: 2px;">Profit: LKR ${(o.totalProfit || 0).toFixed(2)}</p>
         </div>
         <div class="list-card-value">
           LKR ${o.totalCost.toFixed(2)}
@@ -359,13 +371,104 @@ function viewPastOrderReceipt(orderId) {
     date: order.date,
     customerName: custName,
     items: [
-      { description: 'Order Items (Summary)', qty: 1, unitPrice: order.totalCost }
+      { description: 'Order Total Bill Summary', qty: 1, unitPrice: order.totalCost }
     ],
     totalCost: order.totalCost
   });
 }
 
-// Modal Handlers
+// Product Management (ADD, EDIT, DELETE)
+function showProductModal() {
+  document.getElementById('prodModalTitle').innerText = 'Add New Product';
+  document.getElementById('prodCodeEdit').value = '';
+  document.getElementById('prodDesc').value = '';
+  document.getElementById('prodBuyingPrice').value = '';
+  document.getElementById('prodPrice').value = '';
+  document.getElementById('prodQty').value = '';
+  document.getElementById('btnSaveProd').innerText = 'Save Product';
+  document.getElementById('productModal').classList.add('active');
+}
+
+function editProduct(code) {
+  const prod = state.products.find(p => p.code === code);
+  if (!prod) return;
+
+  document.getElementById('prodModalTitle').innerText = 'Edit Product (' + code + ')';
+  document.getElementById('prodCodeEdit').value = code;
+  document.getElementById('prodDesc').value = prod.description;
+  document.getElementById('prodBuyingPrice').value = prod.buyingPrice || '';
+  document.getElementById('prodPrice').value = prod.unitPrice;
+  document.getElementById('prodQty').value = prod.qtyOnHand;
+  document.getElementById('btnSaveProd').innerText = 'Update Product';
+
+  document.getElementById('productModal').classList.add('active');
+}
+
+function closeProductModal() {
+  document.getElementById('productModal').classList.remove('active');
+}
+
+async function saveProduct() {
+  const code = document.getElementById('prodCodeEdit').value;
+  const description = document.getElementById('prodDesc').value.trim();
+  const buyingPrice = document.getElementById('prodBuyingPrice').value.trim();
+  const unitPrice = document.getElementById('prodPrice').value.trim();
+  const qtyOnHand = document.getElementById('prodQty').value.trim();
+
+  if (!description || !unitPrice || !qtyOnHand) {
+    alert('Please fill product description, unit price and stock quantity!');
+    return;
+  }
+
+  try {
+    let res;
+    if (code) {
+      // EDIT existing product
+      res = await fetch(`/api/products/${code}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, buyingPrice, unitPrice, qtyOnHand })
+      });
+    } else {
+      // ADD new product
+      res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, buyingPrice, unitPrice, qtyOnHand })
+      });
+    }
+
+    const data = await res.json();
+    if (data.success) {
+      alert(code ? 'Product updated successfully!' : 'Product saved successfully!');
+      closeProductModal();
+      fetchProducts();
+      fetchStats();
+    } else {
+      alert('Error: ' + data.msg);
+    }
+  } catch (e) {
+    alert('Error saving product: ' + e.message);
+  }
+}
+
+async function deleteProduct(code) {
+  if (!confirm(`Are you sure you want to delete product ${code}?`)) return;
+
+  try {
+    const res = await fetch(`/api/products/${code}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      alert('Product deleted successfully!');
+      fetchProducts();
+      fetchStats();
+    }
+  } catch (e) {
+    alert('Error deleting product');
+  }
+}
+
+// Customer Management
 function showCustomerModal() { document.getElementById('customerModal').classList.add('active'); }
 function closeCustomerModal() { document.getElementById('customerModal').classList.remove('active'); }
 
@@ -396,39 +499,6 @@ async function saveCustomer() {
     }
   } catch (e) {
     alert('Error saving customer');
-  }
-}
-
-function showProductModal() { document.getElementById('productModal').classList.add('active'); }
-function closeProductModal() { document.getElementById('productModal').classList.remove('active'); }
-
-async function saveProduct() {
-  const description = document.getElementById('prodDesc').value.trim();
-  const unitPrice = document.getElementById('prodPrice').value.trim();
-  const qtyOnHand = document.getElementById('prodQty').value.trim();
-
-  if (!description || !unitPrice || !qtyOnHand) {
-    alert('Please fill product details');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description, unitPrice, qtyOnHand })
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert('Product saved successfully!');
-      closeProductModal();
-      document.getElementById('prodDesc').value = '';
-      document.getElementById('prodPrice').value = '';
-      document.getElementById('prodQty').value = '';
-      fetchProducts();
-    }
-  } catch (e) {
-    alert('Error saving product');
   }
 }
 

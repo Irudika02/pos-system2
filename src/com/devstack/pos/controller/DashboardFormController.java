@@ -46,7 +46,7 @@ public class DashboardFormController {
 
     private void setStaticdata() {
         if (lblVersion != null) lblVersion.setText("Version: " + StaticResource.getVERSION());
-        if (lblCompany != null) lblCompany.setText("From: " + StaticResource.getCOMPANY());
+        if (lblCompany != null) lblCompany.setText("Store: " + StaticResource.getCOMPANY() + " | Dev: " + StaticResource.getDEVELOPER());
     }
 
     public void LogoutOnAction(ActionEvent actionEvent) throws IOException {

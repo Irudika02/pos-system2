@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>iPhone Mobile POS | DS POS System</title>
+  <title>Wijenayake Stores | Mobile POS System</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -15,10 +15,10 @@
     <!-- Top Header -->
     <header class="app-header">
       <div class="brand">
-        <div class="brand-logo">⚡</div>
+        <div class="brand-logo">🏪</div>
         <div>
-          <h1>DS POS Mobile</h1>
-          <span class="status-badge" id="netStatus"><span class="pulse-dot"></span> iPhone Live Sync</span>
+          <h1>Wijenayake Stores</h1>
+          <span class="status-badge" id="netStatus"><span class="pulse-dot"></span> Dev: Irudika Wijenayake</span>
         </div>
       </div>
       <button class="icon-btn" onclick="toggleCartDrawer()">
@@ -32,20 +32,21 @@
       <!-- SCREEN 1: DASHBOARD -->
       <section id="screen-dashboard" class="screen active">
         <div class="welcome-card">
-          <h2>Welcome to iPhone POS 📱</h2>
-          <p>Real-time Point of Sale & Stock Control System</p>
+          <h2>Wijenayake Stores POS 🏪</h2>
+          <p>Retail & Supermarket Management System</p>
+          <div class="dev-tag">System Developed by: <strong>Irudika Wijenayake</strong></div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-card blue">
             <span class="stat-icon">💰</span>
             <div class="stat-val" id="statRevenue">LKR 0.00</div>
-            <div class="stat-label">Total Revenue</div>
+            <div class="stat-label">Total Sales</div>
           </div>
           <div class="stat-card green">
             <span class="stat-icon">🧾</span>
             <div class="stat-val" id="statOrders">0</div>
-            <div class="stat-label">Total Orders</div>
+            <div class="stat-label">Bills Issued</div>
           </div>
           <div class="stat-card purple">
             <span class="stat-icon">📦</span>
@@ -60,19 +61,19 @@
         </div>
 
         <div class="quick-actions">
-          <h3>Quick POS Actions</h3>
+          <h3>POS Quick Actions</h3>
           <div class="action-buttons">
             <button class="action-btn" onclick="switchTab('pos')">
-              <span class="action-icon">🛒</span> New Sale / Order
+              <span class="action-icon">🛒</span> New Sale / Generate Bill
             </button>
             <button class="action-btn" onclick="switchTab('products')">
-              <span class="action-icon">📦</span> Manage Products
+              <span class="action-icon">📦</span> Manage Products & Stock
             </button>
             <button class="action-btn" onclick="switchTab('customers')">
               <span class="action-icon">👥</span> Add Customer
             </button>
             <button class="action-btn" onclick="switchTab('history')">
-              <span class="action-icon">📜</span> Order History
+              <span class="action-icon">📜</span> View Receipts & Orders
             </button>
           </div>
         </div>
@@ -81,13 +82,13 @@
       <!-- SCREEN 2: MOBILE POS BILLING -->
       <section id="screen-pos" class="screen">
         <div class="section-title">
-          <h2>Mobile Billing & POS</h2>
+          <h2>Wijenayake Stores POS</h2>
           <button class="btn-sm" onclick="openScanner()">📷 Scan QR</button>
         </div>
 
         <!-- Customer Selector -->
         <div class="form-group">
-          <label>Customer</label>
+          <label>Customer Name</label>
           <select id="posCustomerSelect" class="form-control">
             <option value="C-WALKIN">Walk-in Customer</option>
           </select>
@@ -95,7 +96,7 @@
 
         <!-- Search Bar -->
         <div class="search-box">
-          <input type="text" id="posSearch" placeholder="Search product description or code..." oninput="filterPosProducts()">
+          <input type="text" id="posSearch" placeholder="Search item description or code..." oninput="filterPosProducts()">
         </div>
 
         <!-- Product Grid -->
@@ -129,7 +130,7 @@
       <!-- SCREEN 5: ORDER HISTORY -->
       <section id="screen-history" class="screen">
         <div class="section-title">
-          <h2>Order History</h2>
+          <h2>Bill History</h2>
         </div>
         <div id="historyList" class="card-list">
           <!-- Dynamically loaded order history -->
@@ -157,7 +158,7 @@
       </button>
       <button class="nav-item" onclick="switchTab('history')" id="nav-history">
         <span class="nav-icon">📜</span>
-        <span class="nav-label">Orders</span>
+        <span class="nav-label">Bills</span>
       </button>
     </nav>
 
@@ -165,7 +166,7 @@
     <div class="drawer-overlay" id="cartOverlay" onclick="toggleCartDrawer()"></div>
     <div class="cart-drawer" id="cartDrawer">
       <div class="drawer-header">
-        <h3>🛒 Order Cart</h3>
+        <h3>🛒 Current Bill Items</h3>
         <button class="close-btn" onclick="toggleCartDrawer()">✕</button>
       </div>
       <div class="cart-items" id="cartItemsList">
@@ -180,7 +181,55 @@
           <span>Grand Total</span>
           <strong id="cartGrandTotal">LKR 0.00</strong>
         </div>
-        <button class="btn-checkout" onclick="checkoutOrder()">⚡ Confirm Order & Pay</button>
+        <button class="btn-checkout" onclick="checkoutOrder()">⚡ Generate Bill & Print Receipt</button>
+      </div>
+    </div>
+
+    <!-- MODAL: RECEIPT BILL POPUP -->
+    <div class="modal" id="receiptModal">
+      <div class="modal-content receipt-modal-content">
+        <div class="receipt-paper" id="receiptPaper">
+          <div class="receipt-header">
+            <h2>WIJENAYAKE STORES</h2>
+            <p>Retail & Supermarket Store</p>
+            <p>Quality Products & Friendly Service</p>
+            <div class="receipt-divider">==============================</div>
+          </div>
+          <div class="receipt-meta">
+            <div><strong>Order ID:</strong> <span id="recOrderId">#ORD-001</span></div>
+            <div><strong>Date &amp; Time:</strong> <span id="recDate">2026-08-30 17:35</span></div>
+            <div><strong>Customer:</strong> <span id="recCustomer">Walk-in Customer</span></div>
+          </div>
+          <div class="receipt-divider">------------------------------</div>
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="recItemsBody">
+              <!-- Item rows -->
+            </tbody>
+          </table>
+          <div class="receipt-divider">------------------------------</div>
+          <div class="receipt-total-row">
+            <span>GRAND TOTAL:</span>
+            <strong id="recGrandTotal">LKR 0.00</strong>
+          </div>
+          <div class="receipt-divider">==============================</div>
+          <div class="receipt-footer">
+            <p>Thank You For Shopping With Us!</p>
+            <p>Please Come Again</p>
+            <div class="receipt-dev-credit">POS System Developed by: <strong>Irudika Wijenayake</strong></div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeReceiptModal()">Close</button>
+          <button class="btn-primary" onclick="printReceipt()">🖨️ Print / Save Bill</button>
+        </div>
       </div>
     </div>
 

@@ -23,7 +23,7 @@ public class MainFormController {
 
     private void setStaticdata() {
         lblVersion.setText("Version: " + StaticResource.getVERSION());
-        lblCompany.setText("From: " + StaticResource.getCOMPANY());
+        lblCompany.setText("Store: " + StaticResource.getCOMPANY() + " | Dev: " + StaticResource.getDEVELOPER());
     }
 
     public void OpenLoginFormOnAction(ActionEvent actionEvent) throws IOException {

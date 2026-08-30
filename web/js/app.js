@@ -3,7 +3,8 @@ let state = {
   customers: [],
   orders: [],
   cart: [],
-  stats: { customers: 0, products: 0, orders: 0, revenue: 0 }
+  stats: { customers: 0, products: 0, orders: 0, revenue: 0 },
+  currentReceipt: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -171,12 +172,15 @@ function renderHistory() {
   }
   state.orders.forEach(o => {
     container.innerHTML += `
-      <div class="list-card">
+      <div class="list-card" onclick="viewPastOrderReceipt('${o.orderId}')" style="cursor: pointer;">
         <div class="list-card-info">
           <h4>Order #${o.orderId}</h4>
           <p>Customer: ${o.customerId} | Date: ${o.date}</p>
         </div>
-        <div class="list-card-value">LKR ${o.totalCost.toFixed(2)}</div>
+        <div class="list-card-value">
+          LKR ${o.totalCost.toFixed(2)}
+          <div style="font-size: 11px; color: #6366f1; text-align: right; margin-top: 2px;">📄 View Bill</div>
+        </div>
       </div>
     `;
   });
@@ -265,8 +269,12 @@ async function checkoutOrder() {
     return;
   }
 
-  const customerId = document.getElementById('posCustomerSelect').value;
+  const customerSelect = document.getElementById('posCustomerSelect');
+  const customerId = customerSelect.value;
+  const customerName = customerSelect.options[customerSelect.selectedIndex].text;
   const itemsString = state.cart.map(i => `${i.code}|${i.description}|${i.unitPrice}|${i.qty}`).join(';');
+
+  const checkoutItems = [...state.cart];
 
   try {
     const res = await fetch('/api/orders', {
@@ -274,14 +282,22 @@ async function checkoutOrder() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customerId: customerId,
-        userEmail: 'iphone-pos@pos.com',
+        userEmail: 'irudika@wijenayake-stores.com',
         items: itemsString
       })
     });
 
     const result = await res.json();
     if (result.success) {
-      alert(`🎉 Order Placed Successfully!\nOrder ID: ${result.orderId}\nTotal: LKR ${result.total.toFixed(2)}`);
+      const nowStr = new Date().toLocaleString();
+      showReceiptModal({
+        orderId: result.orderId,
+        date: nowStr,
+        customerName: customerName,
+        items: checkoutItems,
+        totalCost: result.total
+      });
+
       state.cart = [];
       updateCartUI();
       toggleCartDrawer(false);
@@ -294,6 +310,59 @@ async function checkoutOrder() {
   } catch (e) {
     alert('Checkout failed: ' + e.message);
   }
+}
+
+// Receipt Modal Handlers
+function showReceiptModal(receiptData) {
+  state.currentReceipt = receiptData;
+
+  document.getElementById('recOrderId').innerText = '#' + receiptData.orderId;
+  document.getElementById('recDate').innerText = receiptData.date;
+  document.getElementById('recCustomer').innerText = receiptData.customerName;
+
+  const body = document.getElementById('recItemsBody');
+  body.innerHTML = '';
+
+  receiptData.items.forEach(item => {
+    const itemTotal = item.unitPrice * item.qty;
+    body.innerHTML += `
+      <tr>
+        <td>${item.description}</td>
+        <td>${item.qty}</td>
+        <td>${item.unitPrice.toFixed(2)}</td>
+        <td style="text-align: right;">${itemTotal.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('recGrandTotal').innerText = `LKR ${receiptData.totalCost.toFixed(2)}`;
+  document.getElementById('receiptModal').classList.add('active');
+}
+
+function closeReceiptModal() {
+  document.getElementById('receiptModal').classList.remove('active');
+}
+
+function printReceipt() {
+  window.print();
+}
+
+function viewPastOrderReceipt(orderId) {
+  const order = state.orders.find(o => o.orderId === orderId);
+  if (!order) return;
+
+  const cust = state.customers.find(c => c.id === order.customerId);
+  const custName = cust ? cust.name : (order.customerId || 'Walk-in Customer');
+
+  showReceiptModal({
+    orderId: order.orderId,
+    date: order.date,
+    customerName: custName,
+    items: [
+      { description: 'Order Items (Summary)', qty: 1, unitPrice: order.totalCost }
+    ],
+    totalCost: order.totalCost
+  });
 }
 
 // Modal Handlers

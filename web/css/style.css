@@ -83,10 +83,11 @@ body {
 
 .status-badge {
   font-size: 11px;
-  color: var(--success);
+  color: #a855f7;
   display: flex;
   align-items: center;
   gap: 6px;
+  font-weight: 600;
 }
 
 .pulse-dot {
@@ -162,6 +163,16 @@ body {
 .welcome-card p {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.dev-tag {
+  margin-top: 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  color: #e0e7ff;
 }
 
 /* Stats Grid */
@@ -619,4 +630,107 @@ body {
   gap: 10px;
   margin-top: 20px;
   justify-content: flex-end;
+}
+
+/* Receipt Thermal Paper Modal */
+.receipt-modal-content {
+  background: #0f172a;
+  max-width: 360px;
+  padding: 16px;
+}
+
+.receipt-paper {
+  background: #ffffff;
+  color: #111827;
+  padding: 18px;
+  border-radius: 8px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.receipt-header h2 {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.receipt-header p {
+  font-size: 11px;
+  color: #4b5563;
+}
+
+.receipt-divider {
+  text-align: center;
+  font-size: 10px;
+  color: #6b7280;
+  margin: 6px 0;
+}
+
+.receipt-meta {
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 11px;
+}
+
+.receipt-table th {
+  text-align: left;
+  border-bottom: 1px dashed #9ca3af;
+  padding-bottom: 4px;
+}
+
+.receipt-table td {
+  padding: 4px 0;
+}
+
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 11px;
+}
+
+.receipt-dev-credit {
+  margin-top: 8px;
+  font-size: 10px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 4px;
+  color: #374151;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-paper, .receipt-paper * {
+    visibility: visible;
+  }
+  .receipt-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+  }
 }

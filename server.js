@@ -326,35 +326,74 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// STATS & PROFIT ANALYTICS API
+// STATS & PROFIT ANALYTICS API (WITH DAILY / MONTHLY FILTERING)
 app.get('/api/stats', async (req, res) => {
   try {
-    let custCount = 0, prodCount = 0, orderCount = 0, revenue = 0, profit = 0;
+    const period = req.query.period || 'all';
+    let ordersList = [];
+    if (db.query) {
+      const [rows] = await db.query('SELECT * FROM orders');
+      ordersList = rows;
+    } else {
+      ordersList = await db.all('SELECT * FROM orders');
+    }
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const monthStr = new Date().toISOString().substring(0, 7);
+
+    let todayRev = 0, todayProf = 0, todayBills = 0;
+    let monthRev = 0, monthProf = 0, monthBills = 0;
+    let totalRev = 0, totalProf = 0, totalBills = ordersList.length;
+
+    ordersList.forEach(o => {
+      const d = (o.date || '');
+      const rev = parseFloat(o.total_cost || 0);
+      const prof = parseFloat(o.total_profit || 0);
+
+      totalRev += rev;
+      totalProf += prof;
+
+      if (d.startsWith(todayStr)) {
+        todayRev += rev;
+        todayProf += prof;
+        todayBills += 1;
+      }
+      if (d.startsWith(monthStr)) {
+        monthRev += rev;
+        monthProf += prof;
+        monthBills += 1;
+      }
+    });
+
+    let custCount = 0, prodCount = 0, totalStockVal = 0, lowStockCount = 0;
     if (db.query) {
       const [[c]] = await db.query('SELECT COUNT(*) as cnt FROM customer');
-      const [[p]] = await db.query('SELECT COUNT(*) as cnt FROM product');
-      const [[o]] = await db.query('SELECT COUNT(*) as cnt, SUM(total_cost) as rev, SUM(total_profit) as prof FROM orders');
+      const [prods] = await db.query('SELECT unit_price, qty_on_hand FROM product');
       custCount = c.cnt;
-      prodCount = p.cnt;
-      orderCount = o.cnt;
-      revenue = o.rev || 0;
-      profit = o.prof || 0;
+      prodCount = prods.length;
+      prods.forEach(p => {
+        totalStockVal += (parseFloat(p.unit_price || 0) * parseInt(p.qty_on_hand || 0));
+        if (parseInt(p.qty_on_hand || 0) <= 5) lowStockCount += 1;
+      });
     } else {
       const c = await db.get('SELECT COUNT(*) as cnt FROM customer');
-      const p = await db.get('SELECT COUNT(*) as cnt FROM product');
-      const o = await db.get('SELECT COUNT(*) as cnt, SUM(total_cost) as rev, SUM(total_profit) as prof FROM orders');
+      const prods = await db.all('SELECT unit_price, qty_on_hand FROM product');
       custCount = c.cnt;
-      prodCount = p.cnt;
-      orderCount = o.cnt;
-      revenue = o.rev || 0;
-      profit = o.prof || 0;
+      prodCount = prods.length;
+      prods.forEach(p => {
+        totalStockVal += (parseFloat(p.unit_price || 0) * parseInt(p.qty_on_hand || 0));
+        if (parseInt(p.qty_on_hand || 0) <= 5) lowStockCount += 1;
+      });
     }
+
     res.json({
       customers: custCount,
       products: prodCount,
-      orders: orderCount,
-      revenue: parseFloat(revenue || 0),
-      profit: parseFloat(profit || 0)
+      totalStockValue: totalStockVal,
+      lowStockCount: lowStockCount,
+      today: { revenue: todayRev, profit: todayProf, bills: todayBills },
+      month: { revenue: monthRev, profit: monthProf, bills: monthBills },
+      allTime: { revenue: totalRev, profit: totalProf, bills: totalBills }
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

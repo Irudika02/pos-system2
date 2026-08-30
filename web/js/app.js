@@ -3,7 +3,7 @@ let state = {
   customers: [],
   orders: [],
   cart: [],
-  stats: { customers: 0, products: 0, orders: 0, revenue: 0, profit: 0 },
+  stats: null,
   currentReceipt: null
 };
 
@@ -46,14 +46,36 @@ async function fetchStats() {
     const res = await fetch('/api/stats');
     const data = await res.json();
     state.stats = data;
-    document.getElementById('statRevenue').innerText = `LKR ${data.revenue ? data.revenue.toFixed(2) : '0.00'}`;
-    document.getElementById('statProfit').innerText = `LKR ${data.profit ? data.profit.toFixed(2) : '0.00'}`;
-    document.getElementById('statOrders').innerText = data.orders || 0;
-    document.getElementById('statProducts').innerText = data.products || 0;
-    document.getElementById('statCustomers').innerText = data.customers || 0;
+    updateReportStats();
   } catch (e) {
     console.error('Stats error:', e);
   }
+}
+
+function updateReportStats() {
+  if (!state.stats) return;
+
+  const select = document.getElementById('reportPeriodSelect');
+  const period = select ? select.value : 'today';
+  let data = state.stats.today;
+
+  if (period === 'month') {
+    data = state.stats.month;
+    document.getElementById('labelRevenue').innerText = 'This Month Sales';
+    document.getElementById('labelProfit').innerText = 'Monthly Net Profit';
+  } else if (period === 'allTime') {
+    data = state.stats.allTime;
+    document.getElementById('labelRevenue').innerText = 'All Time Sales';
+    document.getElementById('labelProfit').innerText = 'All Time Net Profit';
+  } else {
+    document.getElementById('labelRevenue').innerText = 'Today Sales';
+    document.getElementById('labelProfit').innerText = 'Today Net Profit';
+  }
+
+  document.getElementById('statRevenue').innerText = `LKR ${data.revenue ? data.revenue.toFixed(2) : '0.00'}`;
+  document.getElementById('statProfit').innerText = `LKR ${data.profit ? data.profit.toFixed(2) : '0.00'}`;
+  document.getElementById('statOrders').innerText = data.bills || 0;
+  document.getElementById('statStockVal').innerText = `LKR ${state.stats.totalStockValue ? state.stats.totalStockValue.toFixed(2) : '0.00'}`;
 }
 
 async function fetchProducts() {
@@ -141,11 +163,13 @@ function renderProducts() {
   }
   state.products.forEach(p => {
     const margin = (p.unitPrice - (p.buyingPrice || 0));
+    const stockBadge = p.qtyOnHand <= 5 ? `<span style="background: rgba(239,68,68,0.2); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">LOW STOCK (${p.qtyOnHand})</span>` : `<span style="color: #9ca3af;">Stock: <strong>${p.qtyOnHand} pcs</strong></span>`;
+
     container.innerHTML += `
       <div class="list-card">
         <div class="list-card-info" style="flex: 1;">
           <h4>${p.description}</h4>
-          <p>Code: <strong>${p.code}</strong> | Stock: <strong>${p.qtyOnHand} pcs</strong></p>
+          <p>Code: <strong>${p.code}</strong> | ${stockBadge}</p>
           <p style="color: #10b981; font-size: 11px; margin-top: 2px;">
             Buy: LKR ${(p.buyingPrice || 0).toFixed(2)} | Profit/item: LKR ${margin.toFixed(2)}
           </p>

@@ -29,24 +29,34 @@
     <!-- Main Content Screens -->
     <main class="content-area">
 
-      <!-- SCREEN 1: DASHBOARD -->
+      <!-- SCREEN 1: DASHBOARD & REPORTS -->
       <section id="screen-dashboard" class="screen active">
         <div class="welcome-card">
           <h2>Wijenayake Stores POS 🏪</h2>
-          <p>Retail & Supermarket Management System</p>
+          <p>Retail & Supermarket Sales & Stock Reports</p>
           <div class="dev-tag">System Developed by: <strong>Irudika Wijenayake</strong></div>
+        </div>
+
+        <!-- Report Period Toggle Bar -->
+        <div class="section-title">
+          <h2>Sales Reports & Analytics</h2>
+          <select id="reportPeriodSelect" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;" onchange="updateReportStats()">
+            <option value="today">📅 Today (අද)</option>
+            <option value="month">📅 This Month (මෙම මාසය)</option>
+            <option value="allTime">📅 All Time (සම්පූර්ණ)</option>
+          </select>
         </div>
 
         <div class="stats-grid">
           <div class="stat-card blue">
             <span class="stat-icon">💰</span>
             <div class="stat-val" id="statRevenue">LKR 0.00</div>
-            <div class="stat-label">Total Revenue</div>
+            <div class="stat-label" id="labelRevenue">Today Sales</div>
           </div>
           <div class="stat-card green">
             <span class="stat-icon">📈</span>
             <div class="stat-val" id="statProfit" style="color: #10b981;">LKR 0.00</div>
-            <div class="stat-label">Net Profit (ශුද්ධ ලාභය)</div>
+            <div class="stat-label" id="labelProfit">Today Net Profit</div>
           </div>
           <div class="stat-card purple">
             <span class="stat-icon">🧾</span>
@@ -55,8 +65,8 @@
           </div>
           <div class="stat-card orange">
             <span class="stat-icon">📦</span>
-            <div class="stat-val" id="statProducts">0</div>
-            <div class="stat-label">Products</div>
+            <div class="stat-val" id="statStockVal">LKR 0.00</div>
+            <div class="stat-label">Total Stock Value</div>
           </div>
         </div>
 
@@ -67,13 +77,13 @@
               <span class="action-icon">🛒</span> New Sale / Generate Bill
             </button>
             <button class="action-btn" onclick="switchTab('products')">
-              <span class="action-icon">📦</span> Manage & Edit Products
+              <span class="action-icon">📦</span> Manage Stock & Inventory
             </button>
             <button class="action-btn" onclick="switchTab('customers')">
               <span class="action-icon">👥</span> Add Customer
             </button>
             <button class="action-btn" onclick="switchTab('history')">
-              <span class="action-icon">📜</span> View Receipts & Orders
+              <span class="action-icon">📜</span> View Bills & Receipts
             </button>
           </div>
         </div>
@@ -116,10 +126,10 @@
         </div>
       </section>
 
-      <!-- SCREEN 4: PRODUCTS & STOCK -->
+      <!-- SCREEN 4: PRODUCTS & STOCK REPORTS -->
       <section id="screen-products" class="screen">
         <div class="section-title">
-          <h2>Product Inventory</h2>
+          <h2>Stock & Inventory</h2>
           <button class="btn-primary" onclick="showProductModal()">+ Add Product</button>
         </div>
         <div id="productList" class="card-list">
@@ -142,7 +152,7 @@
     <nav class="bottom-nav">
       <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
         <span class="nav-icon">📊</span>
-        <span class="nav-label">Dashboard</span>
+        <span class="nav-label">Reports</span>
       </button>
       <button class="nav-item" onclick="switchTab('pos')" id="nav-pos">
         <span class="nav-icon">🛒</span>
@@ -150,7 +160,7 @@
       </button>
       <button class="nav-item" onclick="switchTab('products')" id="nav-products">
         <span class="nav-icon">📦</span>
-        <span class="nav-label">Items</span>
+        <span class="nav-label">Stock</span>
       </button>
       <button class="nav-item" onclick="switchTab('customers')" id="nav-customers">
         <span class="nav-icon">👥</span>

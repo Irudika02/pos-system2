@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>iPhone Mobile POS | DS POS System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <h1>DS POS Mobile</h1>
+          <span class="status-badge" id="netStatus"><span class="pulse-dot"></span> iPhone Live Sync</span>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="toggleCartDrawer()">
+        🛒 <span class="cart-badge" id="cartBadge">0</span>
+      </button>
+    </header>
+
+    <!-- Main Content Screens -->
+    <main class="content-area">
+
+      <!-- SCREEN 1: DASHBOARD -->
+      <section id="screen-dashboard" class="screen active">
+        <div class="welcome-card">
+          <h2>Welcome to iPhone POS 📱</h2>
+          <p>Real-time Point of Sale & Stock Control System</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card blue">
+            <span class="stat-icon">💰</span>
+            <div class="stat-val" id="statRevenue">LKR 0.00</div>
+            <div class="stat-label">Total Revenue</div>
+          </div>
+          <div class="stat-card green">
+            <span class="stat-icon">🧾</span>
+            <div class="stat-val" id="statOrders">0</div>
+            <div class="stat-label">Total Orders</div>
+          </div>
+          <div class="stat-card purple">
+            <span class="stat-icon">📦</span>
+            <div class="stat-val" id="statProducts">0</div>
+            <div class="stat-label">Products</div>
+          </div>
+          <div class="stat-card orange">
+            <span class="stat-icon">👥</span>
+            <div class="stat-val" id="statCustomers">0</div>
+            <div class="stat-label">Customers</div>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <h3>Quick POS Actions</h3>
+          <div class="action-buttons">
+            <button class="action-btn" onclick="switchTab('pos')">
+              <span class="action-icon">🛒</span> New Sale / Order
+            </button>
+            <button class="action-btn" onclick="switchTab('products')">
+              <span class="action-icon">📦</span> Manage Products
+            </button>
+            <button class="action-btn" onclick="switchTab('customers')">
+              <span class="action-icon">👥</span> Add Customer
+            </button>
+            <button class="action-btn" onclick="switchTab('history')">
+              <span class="action-icon">📜</span> Order History
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: MOBILE POS BILLING -->
+      <section id="screen-pos" class="screen">
+        <div class="section-title">
+          <h2>Mobile Billing & POS</h2>
+          <button class="btn-sm" onclick="openScanner()">📷 Scan QR</button>
+        </div>
+
+        <!-- Customer Selector -->
+        <div class="form-group">
+          <label>Customer</label>
+          <select id="posCustomerSelect" class="form-control">
+            <option value="C-WALKIN">Walk-in Customer</option>
+          </select>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-box">
+          <input type="text" id="posSearch" placeholder="Search product description or code..." oninput="filterPosProducts()">
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid" id="posProductGrid">
+          <!-- Dynamically loaded products -->
+        </div>
+      </section>
+
+      <!-- SCREEN 3: CUSTOMERS -->
+      <section id="screen-customers" class="screen">
+        <div class="section-title">
+          <h2>Customer Directory</h2>
+          <button class="btn-primary" onclick="showCustomerModal()">+ New Customer</button>
+        </div>
+        <div id="customerList" class="card-list">
+          <!-- Dynamically loaded customers -->
+        </div>
+      </section>
+
+      <!-- SCREEN 4: PRODUCTS & STOCK -->
+      <section id="screen-products" class="screen">
+        <div class="section-title">
+          <h2>Product Inventory</h2>
+          <button class="btn-primary" onclick="showProductModal()">+ Add Product</button>
+        </div>
+        <div id="productList" class="card-list">
+          <!-- Dynamically loaded products -->
+        </div>
+      </section>
+
+      <!-- SCREEN 5: ORDER HISTORY -->
+      <section id="screen-history" class="screen">
+        <div class="section-title">
+          <h2>Order History</h2>
+        </div>
+        <div id="historyList" class="card-list">
+          <!-- Dynamically loaded order history -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('pos')" id="nav-pos">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">POS Bill</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('products')" id="nav-products">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Items</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('customers')" id="nav-customers">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Customers</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('history')" id="nav-history">
+        <span class="nav-icon">📜</span>
+        <span class="nav-label">Orders</span>
+      </button>
+    </nav>
+
+    <!-- CART SLIDE-UP DRAWER -->
+    <div class="drawer-overlay" id="cartOverlay" onclick="toggleCartDrawer()"></div>
+    <div class="cart-drawer" id="cartDrawer">
+      <div class="drawer-header">
+        <h3>🛒 Order Cart</h3>
+        <button class="close-btn" onclick="toggleCartDrawer()">✕</button>
+      </div>
+      <div class="cart-items" id="cartItemsList">
+        <!-- Cart items list -->
+      </div>
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong id="cartSubtotal">LKR 0.00</strong>
+        </div>
+        <div class="summary-row total">
+          <span>Grand Total</span>
+          <strong id="cartGrandTotal">LKR 0.00</strong>
+        </div>
+        <button class="btn-checkout" onclick="checkoutOrder()">⚡ Confirm Order & Pay</button>
+      </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOMER -->
+    <div class="modal" id="customerModal">
+      <div class="modal-content">
+        <h3>Add New Customer</h3>
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="custName" class="form-control" placeholder="e.g. Kasun Perera">
+        </div>
+        <div class="form-group">
+          <label>Address</label>
+          <input type="text" id="custAddress" class="form-control" placeholder="e.g. Colombo 03">
+        </div>
+        <div class="form-group">
+          <label>Salary / Credit Limit</label>
+          <input type="number" id="custSalary" class="form-control" placeholder="50000">
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeCustomerModal()">Cancel</button>
+          <button class="btn-primary" onclick="saveCustomer()">Save Customer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ADD PRODUCT -->
+    <div class="modal" id="productModal">
+      <div class="modal-content">
+        <h3>Add New Product</h3>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="prodDesc" class="form-control" placeholder="e.g. Anchor Milk Powder 400g">
+        </div>
+        <div class="form-group">
+          <label>Unit Price (LKR)</label>
+          <input type="number" id="prodPrice" class="form-control" placeholder="1250.00">
+        </div>
+        <div class="form-group">
+          <label>Quantity On Hand</label>
+          <input type="number" id="prodQty" class="form-control" placeholder="50">
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeProductModal()">Cancel</button>
+          <button class="btn-primary" onclick="saveProduct()">Save Product</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: QR SCANNER -->
+    <div class="modal" id="qrModal">
+      <div class="modal-content">
+        <h3>Scan Product QR Code</h3>
+        <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden;"></div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeScanner()">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+    "java.project.referencedLibraries": {
+        "include": [
+            "lib/fx/*.jar",
+            "lib/fx/bcrypt/*.jar",
+            "lib/fx/mysql/*.jar"
+        ]
+    },
+    "files.readonlyInclude": {
+        "{**/.c4z/.extsrcs/*.PROTSYM.cbl,**/.c4z/.extsrcs/*.PROTSYM.listing}": true
+    }
+}

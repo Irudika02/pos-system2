@@ -7,6 +7,14 @@ let state = {
   currentReceipt: null
 };
 
+// Helper: Safe number parsing for mobile & decimal keyboards
+function parseNum(val) {
+  if (val === null || val === undefined) return 0;
+  const clean = String(val).replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetchStats();
   fetchProducts();
@@ -411,12 +419,21 @@ function closeProductModal() {
 async function saveProduct() {
   const code = document.getElementById('prodCodeEdit').value;
   const description = document.getElementById('prodDesc').value.trim();
-  const buyingPrice = document.getElementById('prodBuyingPrice').value.trim();
-  const unitPrice = document.getElementById('prodPrice').value.trim();
-  const qtyOnHand = document.getElementById('prodQty').value.trim();
+  const buyingPriceRaw = document.getElementById('prodBuyingPrice').value;
+  const unitPriceRaw = document.getElementById('prodPrice').value;
+  const qtyRaw = document.getElementById('prodQty').value;
 
-  if (!description || !unitPrice || !qtyOnHand) {
-    alert('Please fill product description, unit price and stock quantity!');
+  if (!description) {
+    alert('Please enter Item Description / Name (සිංහල / English)');
+    return;
+  }
+
+  const buyingPrice = parseNum(buyingPriceRaw);
+  const unitPrice = parseNum(unitPriceRaw);
+  const qtyOnHand = parseNum(qtyRaw);
+
+  if (unitPrice <= 0) {
+    alert('Please enter a valid Selling Unit Price!');
     return;
   }
 
@@ -475,7 +492,8 @@ function closeCustomerModal() { document.getElementById('customerModal').classLi
 async function saveCustomer() {
   const name = document.getElementById('custName').value.trim();
   const address = document.getElementById('custAddress').value.trim();
-  const salary = document.getElementById('custSalary').value.trim();
+  const salaryRaw = document.getElementById('custSalary').value;
+  const salary = parseNum(salaryRaw);
 
   if (!name || !address) {
     alert('Please fill customer name and address');
